@@ -120,7 +120,7 @@ def enhance_svg(svg_string, bbox):
         return svg_string
 
 # --- Function to get and enhance the SVG using getBBox ---
-@st.cache_data(show_spinner="Generating handwriting...")
+@st.cache_data(show_spinner="Une seconde s'il vous plaît !")
 def get_handwriting_svg(_driver_placeholder, name, legibility, speed):
     """
     Uses Selenium (HEADLESS) to generate handwriting, gets bbox via JS,
@@ -288,7 +288,7 @@ if names_list:
             svg = get_handwriting_svg(id(driver_instance), st.session_state.current_name, TARGET_LEGIBILITY_VALUE, TARGET_SPEED_VALUE)
             if svg:
                 st.session_state.svg_data = svg
-                st.info("Handwriting image ready.") # Keep this feedback
+                st.info("Pouvez-vous lire cette mauvaise écriture ?") # Keep this feedback
             else:
                 st.warning("Failed to generate or enhance handwriting image. Try again or get a new name.")
         else:

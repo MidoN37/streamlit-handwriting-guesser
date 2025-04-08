@@ -255,7 +255,7 @@ if categories_data and category_names_list:
         if not current_category_names:
              st.warning(f"Aucun médicament trouvé pour la catégorie : {st.session_state.selected_category}")
         else:
-            if st.button(f"Nouveau médicament ({st.session_state.selected_category})", key="new_name_button"):
+            if st.button(f"Nouveau médicament)", key="new_name_button"):
                 st.session_state.current_name = random.choice(current_category_names)
                 st.session_state.svg_data = None
                 st.session_state.guess_submitted = False
@@ -299,7 +299,7 @@ if categories_data and category_names_list:
                  st.info("Cliquez sur 'Nouveau médicament' pour commencer.")
 
     else:
-        st.info("Veuillez sélectionner une catégorie pour commencer le jeu.")
+        st.info("Veuillez sélectionner une catégorie pour commencer.")
 
 else:
     st.error("Impossible de charger les catégories de médicaments. Vérifiez les fichiers .txt et les logs.")

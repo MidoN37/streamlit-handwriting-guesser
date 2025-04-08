@@ -1,5 +1,3 @@
-Antibiotiques
-
 Alfamox
 Aclav
 Augmentin
@@ -173,9 +171,6 @@ Thiobactin
 Bactrim
 Co-Trim
 Trisium
-
-Comprimés
-
 Monomitril
 Sintrom
 Andocur
@@ -724,9 +719,6 @@ Becidouze
 Princi-B Fort
 Chondro-aid
 Zofenil
-
-Comprimés antalgiques
-
 Andol
 Cetamyl
 Claradol
@@ -779,9 +771,6 @@ Nurabol
 Periactine
 Pernabol
 Pervital
-
-Cremes
-
 ActiGel
 Addax Expert
 Adfil
@@ -915,9 +904,6 @@ Vermogal
 Voltarene
 Zovirax
 Zozma
-
-Gouttes
-
 Bétastène
 Sun D3
 Zyrtec
@@ -942,9 +928,6 @@ D3Norm
 D3Fix
 D3 Ferol
 Curogyl
-
-Injections
-
 Hibor
 Penitard
 Celestene
@@ -979,9 +962,6 @@ Konakion MM
 Pirocam Sothema
 Androtardyl
 Coltrax
-
-Ovules vaginaux
-
 Pharmatex
 Fluomizin
 Candidax
@@ -1000,9 +980,6 @@ Mikopen
 Colpotrophine
 Gyno-Dermofix
 Polygynax
-
-Pulvérisations
-
 Rinoclenil
 Aeromax
 Budena
@@ -1029,9 +1006,6 @@ Nasonex
 Risonel
 Tabunex
 Soufrane
-
-Sachets
-
 Exomuc
 Kardegic
 Aspegic
@@ -1083,9 +1057,6 @@ Anti Gas
 Rectolax
 Trimedat
 Tributine
-
-SIROP
-
 Pactol
 Airlix
 Aler-z
@@ -1230,9 +1201,6 @@ Toulium
 Tussiphan
 CurAler
 Kintex
-
-Suppositoires
-
 Hemoreine
 Ponstyl
 Nifluril

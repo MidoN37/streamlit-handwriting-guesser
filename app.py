@@ -5,59 +5,43 @@ import os
 import re
 from selenium import webdriver
 from selenium.webdriver.common.by import By
-from selenium.webdriver.chrome.service import Service # Modified import if needed, but usually just Service works
+from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import NoSuchElementException, TimeoutException, WebDriverException
 import xml.etree.ElementTree as ET
+import glob # To find files
 
-# --- Configuration for Deployment ---
-NAMES_FILE_PATH = 'Medpharm.txt' # Relative path for deployment
+# --- Configuration ---
+# No longer a single file path, we'll detect .txt files
 WEBSITE_URL = 'https://www.calligrapher.ai/'
-# OUTPUT_FOLDER_PATH is not critical for displaying in app
+SPECIAL_CATEGORY_FILE = 'Medpharm.txt'
+SPECIAL_CATEGORY_NAME = "Tous les médicaments"
 
 # Slider settings
-TARGET_LEGIBILITY_VALUE = "0.15" # ~10%
+TARGET_LEGIBILITY_VALUE = "0.15" # ~10%? Adjust as needed
 TARGET_SPEED_VALUE = "9.51"     # Max speed
 
-# File existence check might not be needed or could be done differently in cloud
-# if not os.path.exists(OUTPUT_FOLDER_PATH):
-#     try:
-#         os.makedirs(OUTPUT_FOLDER_PATH)
-#     except OSError as e:
-#         # Log warning instead of stopping app
-#         print(f"Warning: Could not create directory {OUTPUT_FOLDER_PATH}: {e}")
+# --- Selenium Functions --- (Keep these as they are)
 
-# --- Selenium Functions ---
-
-# Cache the WebDriver setup - HEADLESS and CACHED for Cloud
 @st.cache_resource(show_spinner="Initializing handwriting engine...")
 def get_webdriver():
     """Initializes and returns a HEADLESS WebDriver instance for Streamlit Cloud."""
     print("Initializing HEADLESS WebDriver for Streamlit Cloud...")
-    # Use default Service() - assumes chromedriver is in PATH in the container
     service = Service()
     options = Options()
-    # Ensure Headless options are active
     options.add_argument("--headless")
     options.add_argument("--disable-gpu")
-    options.add_argument("--window-size=1920,1080") # Specify window size
-    options.add_argument("--no-sandbox") # Needed for container environments
-    options.add_argument("--disable-dev-shm-usage") # Overcome resource limitations
-
-    # Prefs related to download path are less relevant here
-    # prefs = { ... }
-    # options.add_experimental_option("prefs", prefs)
-
+    options.add_argument("--window-size=1920,1080")
+    options.add_argument("--no-sandbox")
+    options.add_argument("--disable-dev-shm-usage")
     try:
         driver = webdriver.Chrome(service=service, options=options)
         print("HEADLESS WebDriver initialized.")
         return driver
     except WebDriverException as e:
         st.error(f"Failed to initialize WebDriver: {e}")
-        st.error("Ensure 'google-chrome-stable' and 'chromedriver' are in packages.txt.")
-        st.error("Check Streamlit Cloud logs for more details.")
         st.stop()
     except Exception as e:
         st.error(f"An unexpected error occurred during WebDriver setup: {e}")
@@ -70,20 +54,16 @@ def set_slider_value(driver, slider_id, target_value):
             EC.presence_of_element_located((By.ID, slider_id))
         )
         driver.execute_script(
-            f"arguments[0].value = '{target_value}'; arguments[0].dispatchEvent(new Event('input'));",
+            f"arguments[0].value = '{target_value}'; arguments[0.dispatchEvent(new Event('input'));",
             slider
         )
         time.sleep(0.2)
-    except TimeoutException: pass # Ignore silently
-    except Exception as e: pass # Ignore silently
+    except TimeoutException: pass
+    except Exception as e: pass
 
-# --- Function to Add Style and ViewBox using PROVIDED bbox ---
 def enhance_svg(svg_string, bbox):
-    """
-    Adds path style and a viewBox based on provided bbox dictionary.
-    """
+    """Adds path style and a viewBox based on provided bbox dictionary."""
     if not svg_string or not svg_string.strip().startswith('<svg'):
-        print("DEBUG: enhance_svg received invalid SVG input.")
         return svg_string
     if not bbox or not all(k in bbox for k in ['x', 'y', 'width', 'height']):
          print("DEBUG: enhance_svg received invalid bbox. Using default.")
@@ -94,11 +74,9 @@ def enhance_svg(svg_string, bbox):
         vb_y = bbox['y'] - padding
         vb_width = bbox['width'] + (2 * padding)
         vb_height = bbox['height'] + (2 * padding)
-        vb_width = max(vb_width, 1) # Ensure positive width/height
+        vb_width = max(vb_width, 1)
         vb_height = max(vb_height, 1)
         viewBox_value = f"{vb_x:.2f} {vb_y:.2f} {vb_width:.2f} {vb_height:.2f}"
-        print(f"DEBUG: Using getBBox-derived viewBox: {viewBox_value}")
-
     try:
         namespaces = {'svg': 'http://www.w3.org/2000/svg'}
         ET.register_namespace('', namespaces['svg'])
@@ -110,36 +88,20 @@ def enhance_svg(svg_string, bbox):
         for path in paths:
             path.set('style', 'stroke:black; stroke-width:2px; fill:none;')
         enhanced_svg_string = ET.tostring(root, encoding='unicode', method='xml')
-        print("DEBUG: SVG enhanced successfully.")
         return enhanced_svg_string
-    except ET.ParseError as e:
-        print(f"Error parsing SVG: {e}")
-        return svg_string
     except Exception as e:
-        print(f"Unexpected error enhancing SVG: {e}")
+        print(f"Error enhancing SVG: {e}")
         return svg_string
 
-# --- Function to get and enhance the SVG using getBBox ---
 @st.cache_data(show_spinner="Une seconde s'il vous plaît !")
 def get_handwriting_svg(_driver_placeholder, name, legibility, speed):
-    """
-    Uses Selenium (HEADLESS) to generate handwriting, gets bbox via JS,
-    extracts SVG source, and enhances it for display.
-    """
+    """Gets and enhances SVG using getBBox."""
     driver = get_webdriver()
-    if not driver:
-        st.error("WebDriver not available for generation.")
-        return None
-
-    svg_source = None
-    enhanced_svg = None
-    bbox = None
-    print(f"Starting handwriting generation for '{name}'...")
+    if not driver: return None
+    svg_source, enhanced_svg, bbox = None, None, None
     try:
         driver.get(WEBSITE_URL)
-        WebDriverWait(driver, 20).until(
-            EC.presence_of_element_located((By.ID, "text-input"))
-        )
+        WebDriverWait(driver, 20).until(EC.presence_of_element_located((By.ID, "text-input")))
         set_slider_value(driver, "bias-slider", legibility)
         set_slider_value(driver, "speed-slider", speed)
         text_input = driver.find_element(By.ID, "text-input")
@@ -148,88 +110,89 @@ def get_handwriting_svg(_driver_placeholder, name, legibility, speed):
         write_button = driver.find_element(By.ID, "draw-button")
         write_button.click()
         time.sleep(2)
-        print(f"Clicked Write! for '{name}'. Waiting for download button...")
         download_button_locator = (By.ID, "save-button")
-        WebDriverWait(driver, 60).until( # Keep generous timeout
-            EC.visibility_of_element_located(download_button_locator)
-        )
-        print("Download button is now visible.")
-        time.sleep(0.5) # Delay before JS execution
-
-        # Get Bounding Box using JavaScript
+        WebDriverWait(driver, 60).until(EC.visibility_of_element_located(download_button_locator))
+        time.sleep(0.5)
         try:
             bbox_script = "return document.getElementById('canvas').getBBox();"
             bbox = driver.execute_script(bbox_script)
-            print(f"DEBUG: Raw bbox from getBBox(): {bbox}")
-            if not bbox or not all(k in bbox for k in ['x', 'y', 'width', 'height']):
-                print("WARN: getBBox() did not return valid data. Will use default viewBox.")
-                bbox = None
-        except Exception as js_err:
-            print(f"Error executing getBBox() script: {js_err}")
-            bbox = None
-
-        # Extract SVG source
+            if not bbox or not all(k in bbox for k in ['x', 'y', 'width', 'height']): bbox = None
+        except Exception as js_err: bbox = None
         svg_canvas = driver.find_element(By.ID, "canvas")
         svg_source = driver.execute_script("return arguments[0].outerHTML;", svg_canvas)
-        print("Extracted SVG source code.")
-
-        # Enhance the extracted SVG using bbox
-        if svg_source:
-            enhanced_svg = enhance_svg(svg_source, bbox)
-        else:
-             print("SVG source was empty, skipping enhancement.")
-
-    except TimeoutException as e:
-        st.error(f"Error: Timed out (60s) waiting for download button for name '{name}'.")
-        print(f"TimeoutException details: {e}") # Log details for cloud debugging
-    except NoSuchElementException as e:
-        st.error(f"Error: Could not find element for name '{name}'.")
-        print(f"NoSuchElementException details: {e}")
-    except WebDriverException as e:
-         st.error(f"WebDriver Error during generation for '{name}': {e}. Check logs.")
-         # Don't necessarily clear cache on all webdriver errors, could be transient
+        if svg_source: enhanced_svg = enhance_svg(svg_source, bbox)
     except Exception as e:
-        st.error(f"An unexpected error occurred while generating handwriting for '{name}': {e}")
-        print(f"Unexpected error details: {e}") # Log details
+        st.error(f"Error generating handwriting for '{name}': {e}")
+    return enhanced_svg
 
-    # --- Important for Cloud: Ensure driver is quit if not cached/managed well ---
-    # Since we are using @st.cache_resource, Streamlit should handle cleanup.
-    # If issues arise, uncommenting a manual quit might be needed, but usually isn't.
-    # finally:
-    #    if driver:
-    #       try:
-    #            driver.quit()
-    #            print("DEBUG: Explicitly quit driver.")
-    #       except Exception as q_err:
-    #            print(f"DEBUG: Error quitting driver: {q_err}")
+# --- NEW: Load Categories Function ---
+@st.cache_data
+def load_categories():
+    """Loads drug names from .txt files into categories."""
+    categories = {}
+    script_dir = os.path.dirname(__file__)
+    txt_files = glob.glob(os.path.join(script_dir, "*.txt"))
+    ignore_files = ['requirements.txt', 'packages.txt']
+    print(f"Found files: {txt_files}") # Debug
 
-    return enhanced_svg # Return the enhanced version
+    all_meds_list = [] # To store names from Medpharm.txt separately if needed
+
+    for full_path in txt_files:
+        filename = os.path.basename(full_path)
+
+        if filename in ignore_files:
+            continue
+
+        category_name = os.path.splitext(filename)[0] # Get filename without .txt
+
+        try:
+            with open(full_path, 'r', encoding='utf-8') as f:
+                names = [line.strip() for line in f if line.strip() and line != '\ufeff']
+
+            if not names:
+                print(f"Warning: No names found in {filename}")
+                continue # Skip empty files
+
+            if filename == SPECIAL_CATEGORY_FILE:
+                 # Store separately for now, handle special category later
+                 all_meds_list = names
+                 print(f"Loaded {len(names)} names for special category '{SPECIAL_CATEGORY_NAME}' from {filename}")
+            else:
+                # Use filename (without extension) as category key
+                categories[category_name] = names
+                print(f"Loaded {len(names)} names for category '{category_name}' from {filename}")
+
+        except FileNotFoundError:
+            print(f"Error: File not found {full_path}") # Should not happen with glob
+        except Exception as e:
+            print(f"Error reading file {filename}: {e}")
+
+    # Now, add the special category if its list has names
+    if all_meds_list:
+        categories[SPECIAL_CATEGORY_NAME] = all_meds_list
+
+    if not categories:
+        st.error("Aucune catégorie de médicaments n'a été trouvée ! Assurez-vous que les fichiers .txt sont présents.")
+        return None
+
+    # Sort categories alphabetically, but keep "Tous les médicaments" conceptually separate/last
+    sorted_categories = sorted([cat for cat in categories if cat != SPECIAL_CATEGORY_NAME])
+    if SPECIAL_CATEGORY_NAME in categories:
+        sorted_categories.append(SPECIAL_CATEGORY_NAME) # Add special category at the end
+
+    # Return the data dictionary and the sorted list of keys
+    return categories, sorted_categories
 
 
 # --- Streamlit App Logic ---
 
-st.set_page_config(page_title="Handwriting Guesser", layout="centered")
+st.set_page_config(page_title="Lecteur d'Ordonnance", layout="centered")
 
-# Inject Custom CSS
+# Inject Custom CSS (Keep as is)
 st.markdown("""
 <style>
-div.stImage {
-    background-color: white;
-    padding: 25px;
-    border-radius: 10px;
-    border: 1px solid #eee;
-    margin-top: 20px;
-    margin-bottom: 20px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    overflow: hidden;
-}
-div.stImage > img {
-    max-width: 100%;
-    max-height: 350px; /* Adjust if needed */
-    object-fit: contain;
-}
+div.stImage { background-color: white; padding: 25px; border-radius: 10px; border: 1px solid #eee; margin-top: 20px; margin-bottom: 20px; display: flex; justify-content: center; align-items: center; overflow: hidden; }
+div.stImage > img { max-width: 100%; max-height: 350px; object-fit: contain; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -237,32 +200,17 @@ div.stImage > img {
 st.title("Savez-vous lire vos médicaments? 🤔")
 st.markdown("Voici une application simple créée par El Mahdi Nih pour vous aider à lire les ordonnances mal rédigées!")
 
-# Load names using relative path
-@st.cache_data
-def load_names(file_path):
-    try:
-        # Use os.path.join for better cross-platform compatibility, though simple name is fine here
-        script_dir = os.path.dirname(__file__) # Get directory where script is running
-        full_path = os.path.join(script_dir, file_path)
-        print(f"Attempting to load names from: {full_path}") # Debug print for cloud
-        with open(full_path, 'r', encoding='utf-8') as f: # Specify encoding
-            names = [line.strip() for line in f if line.strip() and line != '\ufeff']
-        if not names:
-            st.error(f"No valid names found in the file: {file_path}")
-            return None
-        print(f"Successfully loaded {len(names)} names.") # Debug print
-        return names
-    except FileNotFoundError:
-        st.error(f"Error: Names file not found at '{file_path}' relative to the script.")
-        st.error(f"Ensure '{file_path}' is in the root of your GitHub repository.")
-        return None
-    except Exception as e:
-        st.error(f"Error reading names file: {e}")
-        return None
+# --- Load Category Data ---
+loaded_data = load_categories()
+categories_data = None
+category_names_list = []
 
-names_list = load_names(NAMES_FILE_PATH)
+if loaded_data:
+    categories_data, category_names_list = loaded_data
 
-# Initialize session state variables
+# --- Initialize/Manage Session State ---
+if 'selected_category' not in st.session_state:
+    st.session_state.selected_category = None # Start with no category selected
 if 'current_name' not in st.session_state:
     st.session_state.current_name = None
 if 'svg_data' not in st.session_state:
@@ -272,54 +220,90 @@ if 'guess_submitted' not in st.session_state:
 if 'user_guess' not in st.session_state:
     st.session_state.user_guess = ""
 
+# --- Callback to reset game when category changes ---
+def reset_game_state():
+    st.session_state.current_name = None
+    st.session_state.svg_data = None
+    st.session_state.guess_submitted = False
+    st.session_state.user_guess = ""
+    print(f"Category changed, game state reset.")
+
 # --- UI Elements ---
 
-if names_list:
-    if st.button("Commençons! 🏥", key="new_name_button"):
-        st.session_state.current_name = random.choice(names_list)
-        st.session_state.svg_data = None
-        st.session_state.guess_submitted = False
-        st.session_state.user_guess = ""
-        # Ensure revealing st.info is commented out or removed
-        # st.info(f"Selected name: {st.session_state.current_name}. Generating image...")
+if categories_data and category_names_list:
+    # --- Category Selection ---
+    st.header("1. Choisissez une catégorie")
+    selected_cat = st.selectbox(
+        "Catégories disponibles:",
+        options=category_names_list,
+        index=None, # No default selection
+        placeholder="Sélectionnez une catégorie...",
+        key='category_selector', # Use a key to access value easily if needed
+        on_change=reset_game_state # Reset game if selection changes
+    )
+    st.session_state.selected_category = selected_cat # Update state
 
-        driver_instance = get_webdriver()
-        if driver_instance:
-            svg = get_handwriting_svg(id(driver_instance), st.session_state.current_name, TARGET_LEGIBILITY_VALUE, TARGET_SPEED_VALUE)
-            if svg:
-                st.session_state.svg_data = svg
-                st.info("Pouvez-vous lire cette mauvaise écriture ?") # Keep this feedback
-            else:
-                st.warning("Failed to generate or enhance handwriting image. Try again or get a new name.")
+    st.markdown("---") # Visual separator
+
+    # --- Game Area (only shown if category is selected) ---
+    if st.session_state.selected_category:
+        st.header("2. Devinez le médicament")
+
+        # Get names for the currently selected category
+        current_category_names = categories_data.get(st.session_state.selected_category, [])
+
+        if not current_category_names:
+             st.warning(f"Aucun médicament trouvé pour la catégorie : {st.session_state.selected_category}")
         else:
-            st.error("Cannot generate image because WebDriver failed to initialize.")
+            if st.button(f"Nouveau médicament ({st.session_state.selected_category})", key="new_name_button"):
+                st.session_state.current_name = random.choice(current_category_names)
+                st.session_state.svg_data = None
+                st.session_state.guess_submitted = False
+                st.session_state.user_guess = ""
 
-    if st.session_state.svg_data:
-        st.markdown("---")
-        st.subheader("Quel est ce médicament?")
-        st.image(st.session_state.svg_data, use_container_width=True)
+                driver_instance = get_webdriver()
+                if driver_instance:
+                    svg = get_handwriting_svg(id(driver_instance), st.session_state.current_name, TARGET_LEGIBILITY_VALUE, TARGET_SPEED_VALUE)
+                    if svg:
+                        st.session_state.svg_data = svg
+                        st.info("Pouvez-vous lire cette mauvaise écriture ?")
+                    else:
+                        st.warning("Failed to generate handwriting image.")
+                else:
+                    st.error("Cannot generate image because WebDriver failed to initialize.")
 
-        with st.form(key='guess_form'):
-            user_guess = st.text_input("Votre réponse:", key="guess_input", value=st.session_state.user_guess)
-            submit_button = st.form_submit_button(label='Vérifier')
+            if st.session_state.svg_data:
+                # st.subheader("Quel est ce médicament?") # Subheader might be redundant now
+                st.image(st.session_state.svg_data, use_container_width=True)
 
-            if submit_button:
-                st.session_state.user_guess = user_guess
-                st.session_state.guess_submitted = True
+                with st.form(key='guess_form'):
+                    user_guess = st.text_input("Votre réponse:", key="guess_input", value=st.session_state.user_guess)
+                    submit_button = st.form_submit_button(label='Vérifier')
 
-        if st.session_state.guess_submitted:
-            st.markdown("---")
-            if st.session_state.user_guess.strip().lower() == st.session_state.current_name.strip().lower():
-                st.success(f"🎉 C'est vrai ! Le médicament est vraiment **{st.session_state.current_name}**.")
-                st.balloons()
-            else:
-                st.error(f"❌ Faux '{st.session_state.user_guess}'. C'était en fait **{st.session_state.current_name}**.")
+                    if submit_button:
+                        st.session_state.user_guess = user_guess
+                        st.session_state.guess_submitted = True
 
-    elif st.session_state.current_name is not None and not st.session_state.svg_data:
-         st.warning(f"Could not display image for '{st.session_state.current_name}'. See messages/logs.")
+                if st.session_state.guess_submitted:
+                    st.markdown("---")
+                    if st.session_state.user_guess.strip().lower() == st.session_state.current_name.strip().lower():
+                        st.success(f"🎉 C'est vrai ! Le médicament est vraiment **{st.session_state.current_name}**.")
+                        st.balloons()
+                    else:
+                        st.error(f"❌ Faux '{st.session_state.user_guess}'. C'était en fait **{st.session_state.current_name}**.")
+
+            # Message if category selected but no image generated yet/failed
+            elif st.session_state.current_name is not None and not st.session_state.svg_data:
+                 st.warning("Problème lors de la génération de l'image.")
+            elif st.session_state.current_name is None:
+                 st.info("Cliquez sur 'Nouveau médicament' pour commencer.")
+
+    else:
+        st.info("Veuillez sélectionner une catégorie pour commencer le jeu.")
 
 else:
-    st.warning("Cannot start the game. Failed to load the name list.")
+    st.error("Impossible de charger les catégories de médicaments. Vérifiez les fichiers .txt et les logs.")
+
 
 st.markdown("---")
 st.markdown("Créé par El Mahdi Nih | Bonne chance !")

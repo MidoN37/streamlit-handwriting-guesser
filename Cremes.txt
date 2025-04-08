@@ -1,7 +1,7 @@
 ActiGel
 Addax Expert
 Adfil
-Agiderm (crème et pommade)
+Agiderm
 Agifene
 Ainara
 Ainat Roll-On
@@ -33,7 +33,7 @@ Circulex
 Cleniderm
 Clofene
 Clomiter
-Coccidin (Crème | Pommade)
+Coccidin 
 Cosamine
 Cutacnyl Gel
 Cutaderm
@@ -74,7 +74,7 @@ Hydracort
 Hydrogel patch
 Ibuphil
 Inongan
-Itaflam (Crème, gel, baume)
+Itaflam 
 Kenta
 Ketoderm
 Ketoflex
@@ -122,10 +122,10 @@ Systral
 Teguma
 Topicorte
 Topsyne
-Vegebom (Gel)
+Vegebom 
 Vaseline
 Vaseline Officinale
-Vegebom (Crème)
+Vegebom
 Venoxyl
 Vermogal
 Voltarene

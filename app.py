@@ -234,8 +234,8 @@ div.stImage > img {
 """, unsafe_allow_html=True)
 
 
-st.title("✍️ Handwriting Guessing Game")
-st.markdown("Guess the name written in the generated handwriting!")
+st.title("Savez-vous lire vos médicaments? 🤔")
+st.markdown("Voici une application simple créée par El Mahdi Nih pour vous aider à lire les ordonnances mal rédigées!")
 
 # Load names using relative path
 @st.cache_data
@@ -275,7 +275,7 @@ if 'user_guess' not in st.session_state:
 # --- UI Elements ---
 
 if names_list:
-    if st.button("Get New Name & Image", key="new_name_button"):
+    if st.button("Commençons! 🏥", key="new_name_button"):
         st.session_state.current_name = random.choice(names_list)
         st.session_state.svg_data = None
         st.session_state.guess_submitted = False
@@ -296,12 +296,12 @@ if names_list:
 
     if st.session_state.svg_data:
         st.markdown("---")
-        st.subheader("Guess this name:")
+        st.subheader("Quel est ce médicament?")
         st.image(st.session_state.svg_data, use_container_width=True)
 
         with st.form(key='guess_form'):
-            user_guess = st.text_input("Enter your guess:", key="guess_input", value=st.session_state.user_guess)
-            submit_button = st.form_submit_button(label='Submit Guess')
+            user_guess = st.text_input("Votre réponse:", key="guess_input", value=st.session_state.user_guess)
+            submit_button = st.form_submit_button(label='Vérifier')
 
             if submit_button:
                 st.session_state.user_guess = user_guess
@@ -310,10 +310,10 @@ if names_list:
         if st.session_state.guess_submitted:
             st.markdown("---")
             if st.session_state.user_guess.strip().lower() == st.session_state.current_name.strip().lower():
-                st.success(f"🎉 Correct! The name is **{st.session_state.current_name}**.")
+                st.success(f"🎉 C'est vrai ! Le médicament est vraiment **{st.session_state.current_name}**.")
                 st.balloons()
             else:
-                st.error(f"❌ Incorrect. Your guess was '{st.session_state.user_guess}'. The correct name was **{st.session_state.current_name}**.")
+                st.error(f"❌ Faux '{st.session_state.user_guess}'. C'était en fait **{st.session_state.current_name}**.")
 
     elif st.session_state.current_name is not None and not st.session_state.svg_data:
          st.warning(f"Could not display image for '{st.session_state.current_name}'. See messages/logs.")
@@ -322,4 +322,4 @@ else:
     st.warning("Cannot start the game. Failed to load the name list.")
 
 st.markdown("---")
-st.markdown("Powered by [Calligrapher.ai](https://www.calligrapher.ai/) and [Streamlit](https://streamlit.io).")
+st.markdown("Créé par El Mahdi Nih | Bonne chance !")

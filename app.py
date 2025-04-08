@@ -93,7 +93,7 @@ def enhance_svg(svg_string, bbox):
         print(f"Error enhancing SVG: {e}")
         return svg_string
 
-@st.cache_data(show_spinner="Une seconde s'il vous plaît !")
+#@st.cache_data(show_spinner="Une seconde s'il vous plaît !")
 def get_handwriting_svg(_driver_placeholder, name, legibility, speed):
     """Gets and enhances SVG using getBBox."""
     driver = get_webdriver()

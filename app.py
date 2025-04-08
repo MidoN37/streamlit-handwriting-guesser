@@ -20,7 +20,7 @@ SPECIAL_CATEGORY_FILE = 'Medpharm.txt'
 SPECIAL_CATEGORY_NAME = "Tous les médicaments"
 
 # Slider settings
-TARGET_LEGIBILITY_VALUE = "0.05" # ~10%? Adjust as needed
+TARGET_LEGIBILITY_VALUE = "0.15" # Min legibility
 TARGET_SPEED_VALUE = "9.51"     # Max speed
 
 # --- Selenium Functions --- (Keep these as they are)

@@ -1,0 +1,4 @@
+streamlit
+selenium
+# Add specific versions if needed, e.g., selenium==4.10.0
+# You can get versions from your virtual env: pip freeze > requirements.txt
